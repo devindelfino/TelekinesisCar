@@ -1,2 +1,15 @@
-# TelekinesisCar
-Attempting to move a New Bright 1:24 Scale Remote Control Car using the MUSE Brain-sensing Headband
+Project 04: Telekinesis Car
+===========================
+*Devin Delfino*
+
+Description
+-----------
+
+Usage
+-----
+
+
+References
+-----------
+
+1. This project is heavily based on this [IBM developerWorks Tutorial](http://www.ibm.com/developerworks/library/ba-muse-toycar-app/index.html) by Thiago Domingues, Lucas Lima, and Raul Chong. All Credit should go to this source.
