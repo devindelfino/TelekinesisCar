@@ -24,7 +24,7 @@ localBatt = Queue.Queue()
 # Other global variables
 serialTransferRate = 115200
 arduinoPort = '/dev/tty.usbmodem1411'
-webAppURL = 'ws://movetoycar.mybluemix.net'
+# webAppURL = 'ws://movetoycar.mybluemix.net'
 stopAllThreads = False
 threshold = 0.35
 
