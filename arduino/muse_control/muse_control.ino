@@ -1,7 +1,7 @@
-#define FORWARD 2
-#define BACKWARD 4
-#define LEFT 8
-#define RIGHT 12
+int FORWARD = 2;
+int BACKWARD = 4;
+int LEFT = 8;
+int RIGHT = 12;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false, goodString = false;  // whether the string is complete
@@ -22,7 +22,6 @@ void setup() {
   digitalWrite(BACKWARD, HIGH);
   digitalWrite(LEFT, HIGH);
   digitalWrite(RIGHT, HIGH);
-  
 }
 
 void loop() {
@@ -98,5 +97,4 @@ void serialEvent() {
     } 
   }
 }
-
 

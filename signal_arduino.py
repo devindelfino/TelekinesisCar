@@ -23,8 +23,8 @@ localBatt = Queue.Queue()
 
 # Other global variables
 serialTransferRate = 115200
-arduinoPort = '/dev/tty.usbmodem1411'
-# webAppURL = 'ws://movetoycar.mybluemix.net'
+arduinoPort = '/dev/tty.usbmodem411'
+localhost = 5000;
 stopAllThreads = False
 threshold = 0.35
 
@@ -45,65 +45,92 @@ def connectToArduino():
 # Controls the arduino
 def sendToArduino(arduino):
   while (not stopAllThreads):
-    # print "reading"
+    print "reading"
     c = arduino.read()
-    # print c
+    print c
+    print 'before GET'
     reading = arduinoValues.get(block=True)
-    # print "read"
+    print reading
+    print "read"
     arduinoValues.queue.clear()
+    print 'before if-else'
     if (reading[0]+reading[1]+reading[2]+reading[3])/4 > threshold:
       arduino.write("F\n")
+      print "in if"
       print "Message to Arduino: <FORWARD> \t" + str((reading[0]+reading[1]+reading[2]+reading[3])/4)
     else:
+      print 'in else'
       arduino.write("S\n")
       print "Message to Arduino: <STOP> \t" + str((reading[0]+reading[1]+reading[2]+reading[3])/4)
             
-def sendToLocal(connection):
-  while (not stopAllThreads):
-    value = localValues.get(block=True)
-    localValues.queue.clear()
+# def sendToLocal(connection):
+#   while (not stopAllThreads):
+#     value = localValues.get(block=True)
+#     localValues.queue.clear()
     
-    statusIndicator = localHorseShoe.get()
-    localHorseShoe.queue.clear()
+#     statusIndicator = localHorseShoe.get()
+#     localHorseShoe.queue.clear()
     
-    touchingForehead = localTouchingForehead.get()
-    localTouchingForehead.queue.clear()
+#     touchingForehead = localTouchingForehead.get()
+#     localTouchingForehead.queue.clear()
 
-    try:
-      batt = localBatt.get(block=False)
-      localBatt.queue.clear()
-    except Queue.Empty:
-      batt = [0,0,0,0]
+#     try:
+#       batt = localBatt.get(block=False)
+#       localBatt.queue.clear()
+#     except Queue.Empty:
+#       batt = [0,0,0,0]
     
-    connection.send(json.dumps({
-      'C0':value[0],
-      'C1':value[1],
-      'C2':value[2],
-      'C3':value[3],
-      'B0':batt[0],
-      'B1':batt[1],
-      'B2':batt[2],
-      'B3':batt[3],
-      'S0':statusIndicator[0],
-      'S1':statusIndicator[1],
-      'S2':statusIndicator[2],
-      'S3':statusIndicator[3],
-      'S3':statusIndicator[3],
-      'F':touchingForehead[0],
-      'timestamp':value[4]
-      }))
+#     connection.send(json.dumps({
+#       'C0':value[0],
+#       'C1':value[1],
+#       'C2':value[2],
+#       'C3':value[3],
+#       'B0':batt[0],
+#       'B1':batt[1],
+#       'B2':batt[2],
+#       'B3':batt[3],
+#       'S0':statusIndicator[0],
+#       'S1':statusIndicator[1],
+#       'S2':statusIndicator[2],
+#       'S3':statusIndicator[3],
+#       'S3':statussIndicator[3],
+#       'F':touchingForehead[0],
+#       'timestamp':value[4]
+#       }))
     
 
 
 # Reads the data from Muse and stores it on the inputsList
 def processAlpha(path, args):
-  # print args
+  print 'in process alpha'
+  print args
   for i in xrange(len(args)):
       if math.isnan(args[i]):
           args[i] = 0
   args.append(str(datetime.datetime.now()))
+  print 'before PUT'
   arduinoValues.put(args)
   localValues.put(args)
+
+def wink_event(path, args):
+    if(args[1] > 900.0):
+      arduino.write("L\n")
+      print "Message to Arduino: <LEFT> \t" + "left wink"
+    elif(args[2] > 900.0):
+      arduino.write("R\n")
+      print "Message to Arduino: <RIGHT> \t" + "right wink"
+
+def blink_event(path, args):
+  if(args[0] == 1):
+    print 'blinked!'
+    arduino.write("F\n")
+    print "Message to Arduino: <FOWARD> \t" + "blinked"
+
+def jaw_clench_event(path, args):
+  if(args[0] == 1):
+    print 'clenched jaw!'
+    arduino.write("S\n")
+    print "Message to Arduino: <STOP> \t" + " clenched jaw"
 
 # Reads the data from Muse and stores it on the inputsList
 def processBatt(path, args):
@@ -137,7 +164,7 @@ else:
 
 # create server, listening on port 5000
 try:
-    server = liblo.ServerThread(5000, liblo.UDP)
+    server = liblo.ServerThread(localhost, liblo.UDP)
 except liblo.ServerError, err:
     print str(err)
     sys.exit()
@@ -146,6 +173,9 @@ except liblo.ServerError, err:
 
 
 # Registering the functions to be loaded for each OSC channel
+server.add_method("/muse/eeg", 'ffff', wink_event)
+server.add_method("/muse/elements/jaw_clench", 'i', jaw_clench_event)
+server.add_method("/muse/elements/blink", 'i', blink_event)
 server.add_method("/muse/dsp/elements/alpha", 'ffff', processAlpha)
 server.add_method("/muse/batt", 'iiii', processBatt)
 server.add_method("/muse/dsp/elements/horseshoe", 'ffff', processHorseShoe)
@@ -157,16 +187,15 @@ arduino = connectToArduino()
 
 # SET THE URL OF THE NODEJS APP
 #Note: remember that is a "ws" (web socket) connection
-connection = create_connection(webAppURL)
-
+# connection = create_connection(webAppURL)
 
 
 threadArduino = Thread(target=sendToArduino, args=[arduino])
-threadLocalServer = Thread(target=sendToLocal, args=[connection])
+# threadLocalServer = Thread(target=sendToLocal, args=[connection])
 
 # Starts the threads and the OSC server
 threadArduino.start()
-threadLocalServer.start()
+# threadLocalServer.start()
 server.start()
 
 
@@ -178,7 +207,7 @@ stopAllThreads = True
 print "Waiting for threads to close..."
 threadArduino.join()
 print "Arduino thread closed!"
-threadLocalServer.join()
+# threadLocalServer.join()
 
 # Stopping the car
 arduino.write("S\n")
