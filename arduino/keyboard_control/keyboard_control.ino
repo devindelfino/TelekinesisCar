@@ -1,7 +1,7 @@
 int F = 2;
 int B = 4;
-int L = 8;
-int R = 12;
+int L = 7;
+int R = 8;
 int light = 13;
 int left=HIGH, right=HIGH, forward=HIGH, backward=HIGH;
 boolean goodString = false;

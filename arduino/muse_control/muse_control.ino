@@ -1,7 +1,7 @@
 int FORWARD = 2;
 int BACKWARD = 4;
-int LEFT = 8;
-int RIGHT = 12;
+int LEFT = 7;
+int RIGHT = 8;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false, goodString = false;  // whether the string is complete
@@ -33,13 +33,19 @@ void loop() {
     
     if(inputString == "F\n"){
       digitalWrite(13, HIGH);
-      forward = LOW;
-      backward = HIGH;
+      forward = HIGH;
+      backward = LOW;
+      //
+//      forward = LOW;
+//      backward = HIGH;
       goodString = true;
     }
     else if(inputString == "B\n"){
-      forward = HIGH;
-      backward = LOW;
+      forward = LOW;
+      backward = HIGH;
+      //
+//      forward = HIGH;
+//      backward = LOW;
       goodString = true;
     }
     else if(inputString == "L\n"){

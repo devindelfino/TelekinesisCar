@@ -8,17 +8,11 @@ from threading import Thread, Lock
 
 # List of all the inputs coming from Muse
 arduinoValues = Queue.Queue()
-
 arduinoHorseShoe = Queue.Queue()
-
 arduinoTouchingForehead = Queue.Queue()
-
 localValues = Queue.Queue()
-
 localHorseShoe = Queue.Queue()
-
 localTouchingForehead = Queue.Queue()
-
 localBatt = Queue.Queue()
 
 # Other global variables
@@ -35,7 +29,6 @@ def connectToArduino():
 
     arduino = serial.Serial(arduinoPort, serialTransferRate)
 
-
     arduino.timeout = None
     time.sleep(2)
     arduino.write("S\n")
@@ -44,24 +37,19 @@ def connectToArduino():
       
 # Controls the arduino
 def sendToArduino(arduino):
-  while (not stopAllThreads):
-    print "reading"
+  while (True):
     c = arduino.read()
-    print c
-    print 'before GET'
     reading = arduinoValues.get(block=True)
-    print reading
-    print "read"
     arduinoValues.queue.clear()
-    print 'before if-else'
     if (reading[0]+reading[1]+reading[2]+reading[3])/4 > threshold:
       arduino.write("F\n")
-      print "in if"
       print "Message to Arduino: <FORWARD> \t" + str((reading[0]+reading[1]+reading[2]+reading[3])/4)
     else:
-      print 'in else'
       arduino.write("S\n")
       print "Message to Arduino: <STOP> \t" + str((reading[0]+reading[1]+reading[2]+reading[3])/4)
+
+    if(stopAllThreads):
+      return True
             
 # def sendToLocal(connection):
 #   while (not stopAllThreads):
@@ -98,43 +86,17 @@ def sendToArduino(arduino):
 #       'timestamp':value[4]
 #       }))
     
-
-
 # Reads the data from Muse and stores it on the inputsList
 def processAlpha(path, args):
-  print 'in process alpha'
-  print args
   for i in xrange(len(args)):
       if math.isnan(args[i]):
           args[i] = 0
   args.append(str(datetime.datetime.now()))
-  print 'before PUT'
   arduinoValues.put(args)
-  localValues.put(args)
-
-def wink_event(path, args):
-    if(args[1] > 900.0):
-      arduino.write("L\n")
-      print "Message to Arduino: <LEFT> \t" + "left wink"
-    elif(args[2] > 900.0):
-      arduino.write("R\n")
-      print "Message to Arduino: <RIGHT> \t" + "right wink"
-
-def blink_event(path, args):
-  if(args[0] == 1):
-    print 'blinked!'
-    arduino.write("F\n")
-    print "Message to Arduino: <FOWARD> \t" + "blinked"
-
-def jaw_clench_event(path, args):
-  if(args[0] == 1):
-    print 'clenched jaw!'
-    arduino.write("S\n")
-    print "Message to Arduino: <STOP> \t" + " clenched jaw"
+  # localValues.put(args)
 
 # Reads the data from Muse and stores it on the inputsList
 def processBatt(path, args):
-  # print args
   for i in xrange(len(args)):
       if math.isnan(args[i]):
           args[i] = 0
@@ -173,10 +135,8 @@ except liblo.ServerError, err:
 
 
 # Registering the functions to be loaded for each OSC channel
-server.add_method("/muse/eeg", 'ffff', wink_event)
-server.add_method("/muse/elements/jaw_clench", 'i', jaw_clench_event)
-server.add_method("/muse/elements/blink", 'i', blink_event)
-server.add_method("/muse/dsp/elements/alpha", 'ffff', processAlpha)
+server.add_method("/muse/elements/alpha_relative", 'ffff', processAlpha)
+# server.add_method("/muse/dsp/elements/alpha", 'ffff', processAlpha)
 server.add_method("/muse/batt", 'iiii', processBatt)
 server.add_method("/muse/dsp/elements/horseshoe", 'ffff', processHorseShoe)
 server.add_method("/muse/dsp/elements/touching_forehead", 'i', processTouchingForehead)
@@ -205,15 +165,15 @@ print "Closing everything..."
 
 stopAllThreads = True
 print "Waiting for threads to close..."
-threadArduino.join()
+threadArduino.join(1.0)
 print "Arduino thread closed!"
 # threadLocalServer.join()
 
-# Stopping the car
+# stopping car
 arduino.write("S\n")
 
 print "Local server thread closed!"
 
 print "Waiting for OSC server to close..."
-server.free()
+server.stop()
 print "OSC server closed!"
